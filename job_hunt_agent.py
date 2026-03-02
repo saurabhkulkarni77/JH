@@ -382,6 +382,15 @@ with st.sidebar:
             st.session_state[k] = v if not isinstance(v, (dict, list)) else type(v)()
         st.rerun()
 
+# ── Init OpenAI client once at top level ──
+client = None
+if st.session_state.get("_api_key"):
+    try:
+        client = OpenAI(api_key=st.session_state._api_key)
+    except Exception as e:
+        st.error(f"Failed to initialise OpenAI client: {e}")
+        st.stop()
+
 
 # ══════════════════════════════════════════════════════════
 # PAGE: ORCHESTRATE
@@ -429,7 +438,7 @@ if "Orchestrate" in page:
         if not location: errors.append("Location")
         if errors:
             st.error(f"⚠️ Please fill in: {', '.join(errors)}")
-        elif not st.session_state.api_key_set:
+        elif not client:
             st.error("⚠️ Please enter your OpenAI API Key in the sidebar.")
         else:
             profile = {
@@ -446,7 +455,6 @@ if "Orchestrate" in page:
             st.session_state.orchestration_done = False
             st.session_state.total_runs += 1
 
-            client = OpenAI(api_key=st.session_state._api_key)
             ctx = build_base_context(profile)
 
             # ── PROGRESS UI ──
